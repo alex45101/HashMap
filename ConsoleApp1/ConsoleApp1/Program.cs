@@ -10,7 +10,14 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            
+            HashMap<string, string> hashMap = new HashMap<string, string>();
+
+            hashMap.Add("sup", "a");
+            hashMap.Add("hi", "b");
+
+            hashMap.Remove("hi");            
+
+            hashMap.Clear();
         }
     }
 }

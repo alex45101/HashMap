@@ -43,62 +43,159 @@ namespace ConsoleApp1
                 throw new ArgumentOutOfRangeException("Capacity is less than zero");
             }
 
-            buckets = new LinkedList<KeyValuePair<TKey, TValue>>[capacity];
-            EqualityComparer = equalityComparer;
+            EqualityComparer = equalityComparer ?? EqualityComparer<TKey>.Default;
+
+            buckets = new LinkedList<KeyValuePair<TKey, TValue>>[capacity];            
         }
 
         public void Add(TKey key, TValue value)
         {
-            throw new NotImplementedException();
+            Add(new KeyValuePair<TKey, TValue>(key, value));         
         }
 
         public void Add(KeyValuePair<TKey, TValue> item)
         {
-            throw new NotImplementedException();
+            if (ContainsKey(item.Key))
+            {
+                throw new Exception("Duplicate key");
+            }
+
+            if (Count + 1 >= buckets.Length)
+            {
+                ReHash();
+            }
+
+            int index = Math.Abs(item.Key.GetHashCode() % buckets.Length);
+
+            if (buckets[index] == null)
+            {
+                buckets[index] = new LinkedList<KeyValuePair<TKey, TValue>>();
+            }
+
+            buckets[index].AddLast(item);
+
+            Count++;
+        }
+
+        private void ReHash()
+        {
+            var temp = new LinkedList<KeyValuePair<TKey, TValue>>[buckets.Length * 2];
+
+            for (int i = 0; i < buckets.Length; i++)
+            {
+                foreach (var thing in buckets[i])
+                {
+                    int newIndex = Math.Abs(thing.GetHashCode() % temp.Length);
+
+                    if (temp[newIndex] == null)
+                    {
+                        temp[newIndex] = new LinkedList<KeyValuePair<TKey, TValue>>();
+                    }
+
+                    temp[newIndex].AddLast(thing);
+                }
+            }
+
+            buckets = temp;
         }
 
         public void Clear()
         {
-            throw new NotImplementedException();
+            if (Count > 0)
+            {
+                Array.Clear(buckets, 0, buckets.Length);
+            }
         }
 
         public bool Contains(KeyValuePair<TKey, TValue> item)
         {
+            int index = item.Key.GetHashCode() % buckets.Length;
+
             throw new NotImplementedException();
         }
 
         public bool ContainsKey(TKey key)
         {
-            throw new NotImplementedException();
+            int index = Math.Abs(key.GetHashCode() % buckets.Length);
+
+            if (buckets[index] != null)
+            {
+                foreach (var item in buckets[index])
+                {
+                    if (EqualityComparer.Equals(item.Key, key))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             throw new NotImplementedException();
         }
-
-        //TODO: Fix
+        
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            for (int i = 0; i < Count; i++)
+            for (int i = 0; i < buckets.Length; i++)
             {
-                yield return buckets[i].First.Value;
+                foreach (var item in buckets[i])
+                {
+                    yield return item;
+                }
             }
         }
 
         public bool Remove(TKey key)
         {
-            throw new NotImplementedException();
+            if (Count == 0)
+            {
+                return false;
+            }
+
+            int index = Math.Abs(key.GetHashCode() % buckets.Length);
+
+            if (buckets[index] != null)
+            {
+                foreach (var item in buckets[index])
+                {
+                    if (EqualityComparer.Equals(item.Key, key))
+                    {
+                        buckets[index].Remove(item);
+                        Count--;
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
         }
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {
-            throw new NotImplementedException();
+            return Remove(item.Key);
         }
 
         public bool TryGetValue(TKey key, out TValue value)
-        {
-            throw new NotImplementedException();
+        {            
+            if (ContainsKey(key))
+            {
+                int index = Math.Abs(key.GetHashCode() % buckets.Length);
+
+                foreach (var item in buckets[index])
+                {
+                    if (EqualityComparer.Equals(item.Key, key))
+                    {
+                        value = item.Value;
+                        return true;
+                    }
+                }
+            }
+
+            value = default(TValue);
+            return false;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
