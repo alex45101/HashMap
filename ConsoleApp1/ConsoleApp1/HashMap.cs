@@ -12,7 +12,51 @@ namespace ConsoleApp1
         LinkedList<KeyValuePair<TKey, TValue>>[] buckets;
         const int defaultCapacity = 30;
 
-        public TValue this[TKey key] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public TValue this[TKey key]
+        {
+            get
+            {
+                if (!ContainsKey(key))
+                {
+                    throw new KeyNotFoundException();
+                }
+
+                int index = Math.Abs(key.GetHashCode() & buckets.Length);
+
+                TValue value = default(TValue);
+
+                foreach (var item in buckets[index])
+                {
+                    if (EqualityComparer.Equals(item.Key, key))
+                    {
+                        value = item.Value;
+                    }
+                }
+
+                return value;
+            }
+            set
+            {
+                int index = Math.Abs(key.GetHashCode() & buckets.Length);
+
+                bool isAlive = false;
+
+                for(var item = buckets[index].First; item != null; item = item.Next)
+                {
+                    if (EqualityComparer.Equals(item.Value.Key, key))
+                    {                        
+                        item.Value = new KeyValuePair<TKey, TValue>(key, value);
+                        isAlive = true;
+                        item = null;
+                    }
+                }
+
+                if (!isAlive)
+                {
+                    buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
+                }
+            }
+        }
 
         public IEqualityComparer<TKey> EqualityComparer { get; private set; }
 
@@ -45,12 +89,12 @@ namespace ConsoleApp1
 
             EqualityComparer = equalityComparer ?? EqualityComparer<TKey>.Default;
 
-            buckets = new LinkedList<KeyValuePair<TKey, TValue>>[capacity];            
+            buckets = new LinkedList<KeyValuePair<TKey, TValue>>[capacity];
         }
 
         public void Add(TKey key, TValue value)
         {
-            Add(new KeyValuePair<TKey, TValue>(key, value));         
+            Add(new KeyValuePair<TKey, TValue>(key, value));
         }
 
         public void Add(KeyValuePair<TKey, TValue> item)
@@ -60,7 +104,7 @@ namespace ConsoleApp1
                 throw new Exception("Duplicate key");
             }
 
-            if (Count + 1 >= buckets.Length)
+            if (Count == buckets.Length)
             {
                 ReHash();
             }
@@ -83,7 +127,7 @@ namespace ConsoleApp1
 
             for (int i = 0; i < buckets.Length; i++)
             {
-                foreach (var thing in buckets[i])
+                foreach (var thing in buckets[i] ?? Enumerable.Empty<KeyValuePair<TKey, TValue>>())
                 {
                     int newIndex = Math.Abs(thing.GetHashCode() % temp.Length);
 
@@ -94,6 +138,7 @@ namespace ConsoleApp1
 
                     temp[newIndex].AddLast(thing);
                 }
+
             }
 
             buckets = temp;
@@ -130,13 +175,14 @@ namespace ConsoleApp1
             }
 
             return false;
-        }
+        }        
 
+        //TODO make this work
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             throw new NotImplementedException();
         }
-        
+
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
             for (int i = 0; i < buckets.Length; i++)
@@ -169,7 +215,7 @@ namespace ConsoleApp1
                     }
                 }
             }
-            
+
             return false;
         }
 
@@ -179,7 +225,7 @@ namespace ConsoleApp1
         }
 
         public bool TryGetValue(TKey key, out TValue value)
-        {            
+        {
             if (ContainsKey(key))
             {
                 int index = Math.Abs(key.GetHashCode() % buckets.Length);
